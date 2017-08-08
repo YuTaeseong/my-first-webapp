@@ -1,0 +1,13 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<div style="padding:200px">
+    {% if user.is_active %}
+    <div class="col-md-6 text-center" ><th><h1><a href="{% url 'crawler' pk=user.username %}">your favorite website</a></h1></th></div>
+    {% else %}
+    <div class="col-md-6 text-center" ><th><h1><a href="{% url 'login' %}">your favorite website</a></h1></th></div>
+    {% endif %}
+    <div class="col-md-6 text-center"><th><h1><a href="">경희대 도서관</a></h1></th></div>
+</div>
+
+{% endblock %}

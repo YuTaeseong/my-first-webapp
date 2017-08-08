@@ -1,0 +1,11 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<form action="https://formspree.io/yugeeklab@gmail.com"
+      method="POST">
+    <input type="url" name="name" placeholder="사이트 URL">
+    <input type="email" name="_replyto" placeholder="Your Email">
+    <input type="submit" value="추가 요청">
+</form>
+    <p>모든 사이트의 구성이 다르므로 사이트 추가 작업은 모두 수작업으로 진행됩니다.</p>
+{% endblock %}

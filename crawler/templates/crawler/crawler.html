@@ -1,0 +1,32 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<div class="row">
+{% for i , j in data_set.items %}
+    <div class="col-md-6">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>{{i}}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for data in j %}
+            <tr>
+            <td class="post">
+                <div class="date">
+                    {{ data.date }}
+                </div>
+                <a href="">{{ data.title }}</a>
+            </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+{% endfor %}
+</div>
+<div class="row text-center"><h2><a href="{% url 'add_site' %}">사이트 추가하기</a></h2></div>
+
+
+{% endblock %}

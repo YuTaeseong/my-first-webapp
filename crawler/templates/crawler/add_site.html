@@ -1,0 +1,18 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {% for site_name in site_names %}
+        {% if site_name in site_user  %}
+            <input type="checkbox" name="Site_Name" value="{{site_name.id}}" checked>{{site_name.title}}
+        {% else %}
+            <input type="checkbox" name="Site_Name" value="{{site_name.id}}" >{{site_name.title}}
+        {% endif %}
+    {% endfor %}
+    <input type="submit" value="Submit">
+</form>
+    <p>모든 사이트의 구성이 다르므로 사이트 추가 작업은 모두 수작업으로 진행됩니다.</p>
+    <button><a href="{%  url 'add_request' %}">추가 요청</a></button>
+
+{% endblock %}
