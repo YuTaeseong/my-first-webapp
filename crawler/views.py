@@ -42,7 +42,7 @@ def add_site(request) :
         for site_id_ex in Site_Name.objects.exclude(id__in=form.getlist('Site_Name')):
             site_id_ex.users.remove(user)
 
-        return redirect(reverse('crawler',kwargs = {'pk': user.username}))
+        return redirect('crawler')
 
     return render(request, 'crawler/add_site.html', {'site_names':site_names, 'site_user':site_user})
 
@@ -51,7 +51,7 @@ def add_request(request):
     return render(request, 'crawler/add_request.html')
 
 @login_required
-def crawler(request, pk):
+def crawler(request):
     user = request.user
     site_user = Site_Name.objects.filter(users=user)
     data_set = {}
