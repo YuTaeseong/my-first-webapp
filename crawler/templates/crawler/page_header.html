@@ -3,7 +3,7 @@
 {% block content %}
 <div style="padding:200px">
     {% if user.is_active %}
-    <div class="col-md-6 text-center" ><th><h1><a href="{% url 'crawler' pk=user.username %}">your favorite website</a></h1></th></div>
+    <div class="col-md-6 text-center" ><th><h1><a href="{% url 'crawler' %}">your favorite website</a></h1></th></div>
     {% else %}
     <div class="col-md-6 text-center" ><th><h1><a href="{% url 'login' %}">your favorite website</a></h1></th></div>
     {% endif %}
