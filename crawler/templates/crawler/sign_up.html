@@ -1,8 +1,14 @@
 {% extends 'crawler/base.html' %}
+{% load widget_tweaks %}
 
 {% block content %}
-    <form method="POST">{% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="save btn btn-default">회원가입</button>
-    </form>
+<form method="post" class="form-signin " style="margin-top:50px">
+{% csrf_token %}
+    <h2 class="form-signin-heading">Please sign up</h2>
+    {{ form.username | add_class:"form-control form-control-custom" | attr:"placeholder:USERNAME" }}
+    {{ form.email | add_class:"form-control form-control-custom" | attr:"placeholder:EMAIL" }}
+    {{ form.password1 | add_class:"form-control form-control-custom" | attr:"placeholder:PASSWORD"}}
+    {{ form.password2 | add_class:"form-control form-control-custom" | attr:"placeholder:RE PASSWORD"}}
+    <input type="submit" class="btn btn-lg btn-primary btn-block" value="sign up" style="margin-top : 10px;"/>
+</form>
 {% endblock %}

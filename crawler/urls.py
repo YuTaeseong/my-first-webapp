@@ -10,4 +10,6 @@ urlpatterns = [
     url(r'^signup_ok/$', views.sign_up_ok, name='sign_up_ok'),
     url(r'^addsite/$', views.add_site, name='add_site'),
     url(r'^addrequest/$', views.add_request, name='add_request'),
+    url(r'^ajax/data/$', views.ajax_data, name='ajax_data'),
+    url(r'^ajax/data_final/$', views.add_complete, name='add_complete'),
 ]

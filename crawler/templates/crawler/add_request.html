@@ -1,11 +1,151 @@
 {% extends 'crawler/base.html' %}
 
 {% block content %}
-<form action="https://formspree.io/yugeeklab@gmail.com"
-      method="POST">
-    <input type="url" name="name" placeholder="사이트 URL">
-    <input type="email" name="_replyto" placeholder="Your Email">
-    <input type="submit" value="추가 요청">
+
+<form method="POST">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="inputAddress"><h1><small>Pleas type site's URL</small></h1></label>
+        <input type="url" class="form-control" id="inputAddress" placeholder="SITE'S URL" name="name">
+    </div>
+    <div class="form-group row">
+        <div class="col-sm-10">
+            <button type="submit" class="btn btn-primary">ADD</button>
+        </div>
+    </div>
 </form>
-    <p>모든 사이트의 구성이 다르므로 사이트 추가 작업은 모두 수작업으로 진행됩니다.</p>
+<hr>
+<div class="row">
+<div class="col-md-6">
+{% if rss %}
+    <p>RSS 피드가 존재하는 사이트 입니다. 원하시는 RSS 피드를 선택해주십시오.</p>
+    <div class="input-group">
+        <select class="custom-select" id="inputGroupSelect04">
+            <option value="0" selected>Choose...</option>
+    {% for i in rss %}
+            <option value="{{ i }}">{{ i }}</option>
+    {% endfor %}
+        </select>
+        <div class="input-group-append">
+    <button class="btn btn-outline-secondary" type="button" name="button1">Button</button>
+        </div>
+    </div>
+{% elif head %}
+    <p id="url">{{ url }}</p>
+    <p>RSS 피드가 존재하지 않는 사이트 입니다. 직접 선택해주십시오</p>
+<iframe frameborder="0" id ='iframe' class = 'col-md-6' style="display:block; height: 100vh">
+</iframe>
+{% endif %}
+</div>
+<div class="col-md-6">
+    <h1 id="h"></h1>
+    <table class="table" id="t">
+    </table>
+    <div id="b" class="text-right">
+
+    </div>
+</div>
+</div>
+
+<script type="text/javascript">
+var doc_head = document.getElementById('iframe').contentWindow.document.head;
+var t;
+{% for i in head %}
+    t += '{{ i|safe }}';
+    t += '</scri';
+{% endfor %}
+t = t.replace('&sq','\'');
+t = t.replace('&bs','\\');
+
+doc_head.innerHTML = t.slice(0,-6) ;
+console.log(t.slice(0,-6));
+
+var doc_body = document.getElementById('iframe').contentWindow.document.body;
+var k;
+{% for i in body %}
+    k += '{{ i|safe }}';
+    k += '</scri';
+{% endfor %}
+k = k.replace('&sq','\'');
+k = k.replace('&bs','\\');
+console.log(k.slice(0,-6));
+doc_body.innerHTML = k.slice(0,-6);
+
+var t = document.getElementById('iframe').contentWindow.document.getElementsByTagName('a');
+var k;
+for (k=0; k < t.length; k++) {
+    t[k].setAttribute('href','javascript:;');
+}
+
+var e;
+$( "#iframe" ).contents().click(function( event ) {
+  console.log(event.target.nodeName);
+  e = event.target.getAttribute('class');
+  var url = $('#url').text();
+  var site_title = $( "#iframe" ).contents().find('head title').text();
+
+  var json = { 'site_url' : url, 'class' : e, 'site_title' : site_title};
+
+  console.log(e);
+
+  $("#iframe").contents().find("."+e).css("border","2px solid red");
+
+  var str;
+
+  $("#iframe").contents().find("."+e).each(function(){
+    str += "<tr><td class='post'>"+ $(this).text() + "</td></tr>";
+  });
+  $('#t').html(str);
+  $('#b').html('<button name="button2" class="btn btn-outline-success">등록</button>');
+
+  $('[name = "button2"]').click(function(){
+        $.ajax({
+            url: '/ajax/data_final/',
+            data : json,
+            dataType : 'json',
+            success : function(data){
+                location.href="/crawler/";
+            }
+        });
+  });
+
+});
+
+</script>
+<script>
+$('[name = "button1"]').click(function(){
+
+        var href = $( "#inputGroupSelect04" ).val();
+        var str;
+
+        $.ajax({
+            url: '/ajax/data/',
+            data : {
+                'url' : href
+            },
+            dataType : 'json',
+            success : function(data){
+                $(data.success).each(function(){
+                    str += "<tr><td class='post'>"+ this + "</td></tr>";
+                });
+
+                $('#t').html(str);
+                $('#h').html(data.title);
+                $('#b').html('<button name="button2" class="btn btn-outline-success">Register</button>');
+
+                $('[name = "button2"]').click(function(){
+                    var json = { 'site_title' : data.title, 'class' : null, 'site_url' : href };
+                    $.ajax({
+                        url: '/ajax/data_final/',
+                        data : json,
+                        dataType : 'json',
+                        success : function(data){
+                            location.href="/crawler/";
+                        }
+                    });
+                });
+            }
+        });
+});
+</script>
 {% endblock %}

@@ -1,5 +1,5 @@
 # Create your views here.
-from .models import Data_Digital, Data_SeongSu, Site_Name, Data_Base, Data_Hyunime
+from .models import Site_Name
 from django.shortcuts import render, get_object_or_404
 from .forms import CreateUserForm
 from django.shortcuts import redirect
@@ -10,6 +10,7 @@ import datetime
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 # from django.contrib.auth.forms import UserCreationForm
+from django.http import JsonResponse
 
 
 def page_header(request):
@@ -31,164 +32,136 @@ def sign_up_ok(request) :
 @login_required
 def add_site(request) :
     user = request.user
-    site_names = Site_Name.objects.all()
-    site_user = Site_Name.objects.filter(users = user)
+    site = Site_Name.objects.filter(users = user)
 
     if request.method == "POST":
         form = request.POST
 
-        for site_id_in in form.getlist('Site_Name'):
-            Site_Name.objects.get(id = site_id_in).users.add(user)
-        for site_id_ex in Site_Name.objects.exclude(id__in=form.getlist('Site_Name')):
+        for site_id_ex in Site_Name.objects.filter(id__in=form.getlist('Site_Name')):
             site_id_ex.users.remove(user)
 
         return redirect('crawler')
 
-    return render(request, 'crawler/add_site.html', {'site_names':site_names, 'site_user':site_user})
+    return render(request, 'crawler/add_site.html', {'site':site})
 
 @login_required
 def add_request(request):
-    return render(request, 'crawler/add_request.html')
+
+    if request.method == "POST":
+        url = request.POST['name']
+        req = requests.get(url)
+        html = req.text
+        soup = BeautifulSoup(html, 'html.parser')
+        link = soup.find_all(type="application/rss+xml")
+
+        rss_list = []
+        for i in link :
+            rss_list.append(i.get('href'))
+
+        if len(link) == 0 :
+            html_head = soup.head
+            html_head = str(html_head)
+            html_head = re.sub('<head.*?>','', html_head)
+            html_head = re.sub('</head.*?>','', html_head)
+            html_head = re.sub('\n', '', html_head)
+            html_head = re.sub('\r', '', html_head)
+
+            html_head = re.sub(r'\\', '&bs', html_head)
+            html_head = re.sub('\'', '&sq', html_head)
+
+            html_head_final = html_head.split("</scri")
+
+            html_body = soup.body
+            html_body = str(html_body)
+            html_body = re.sub('<body.*?>','', html_body)
+            html_body = re.sub('</body.*?>','', html_body)
+            html_body = re.sub('\n', '', html_body)
+            html_body = re.sub('\r', '', html_body)
+
+            html_body = re.sub(r'\\', '&bs', html_body)
+            html_body = re.sub('\'', '&sq', html_body)
+
+            html_body_final = html_body.split('</scri')
+            #print(html_head_final)
+            return render(request, 'crawler/add_request.html', { 'head' : html_head_final, 'body' : html_body_final, 'url' : url })
+
+        return render(request, 'crawler/add_request.html', {'rss' : rss_list})
+
+    return render(request, 'crawler/add_request.html', {})
 
 @login_required
 def crawler(request):
-    user = request.user
-    site_user = Site_Name.objects.filter(users=user)
-    data_set = {}
+    sites = Site_Name.objects.filter(users=request.user)
 
-    for i in site_user :
-        if i.pk == 2 :
-            #Seongsu makerspace
-            data_set[i.title] = seongsu_crawler()
+    title_dic={}
 
-        elif i.pk == 1 :
-            #digital dajanggan
-            data_set[i.title] = digital_crawler()
+    for i in sites :
+        if i.detail :
+            pass
+        else :
+            url = i.site
 
-        elif i.pk == 3 :
-            #digital dajanggan
-            data_set[i.title] = hyunime_crawler()
+            req = requests.get(url)
+            html = req.text
+            soup = BeautifulSoup(html, 'html.parser')
 
-    return render(request, 'crawler/crawler.html', {'data_set_keys' :data_set.keys(), 'data_set':data_set})
+            title = soup.select('item > title')
 
-# datetime 형식의 변수 비교
-def time_compare(timelist1, timelist2) :
+            title_list = []
+            for j in title:
+                title_list.append(j.string);
 
-    if timelist2 - timelist1 > datetime.timedelta(days=30) :
-        return True
+            title_dic[i.title] = title_list
+
+    return render(request, 'crawler/crawler.html', {'title':title_dic})
+
+def ajax_data(request):
+
+    url = request.GET.get('url',None)
+
+    req = requests.get(url)
+    html = req.text
+    soup = BeautifulSoup(html, 'html.parser')
+
+    title = soup.select('item > title')
+    site_title = soup.select('channel > title')
+
+    title_list=[]
+    for i in title :
+        title_list.append(i.string);
+
+    site_title_string = site_title[0].string
+
+    data = {
+        'success' : title_list,
+        'title' : site_title_string
+    }
+
+    return JsonResponse(data)
+
+def add_complete(request) :
+    site_url = request.GET.get('site_url',None)
+    site_title = request.GET.get('site_title',None)
+
+    if Site_Name.objects.filter(site = site_url).exists() == False :
+        site = Site_Name()
+        site.title = site_title
+        site.site = site_url
+
+        if request.GET.get('class',None) :
+            site.detail = request.GET.get('class',None)
+
+        site.save()
+        site.users.add(request.user)
+        site.save()
+
+        data = {}
+        return JsonResponse(data)
+
     else:
-        return False
+        site = Site_Name.objects.get(site = site_url)
 
-def digital_crawler():
+        site.users.add(request.user)
 
-    req = requests.get('https://www.digital-blacksmithshop.com:46115/board/list/notice')
-    html = req.text
-    soup = BeautifulSoup(html, 'html.parser')
-    data_titles = soup.select(
-        'tr > td'
-        )
-
-    i = 1
-    valid = [False, False]
-
-    for title in data_titles:
-        if i % 5 == 2 or i % 5 == 0 :
-            if i % 5 == 2 :
-                real_title = title.text
-                valid[0] = True
-            elif i % 5 == 0 :
-                date = datetime.datetime.now()
-                real_date = datetime.date(int(date.strftime('%Y')), int(title.text[0:2]), int(title.text[3:]))
-                valid[1] = True
-
-            if valid[0] == True and valid[1] == True:
-                data = Data_Digital()
-                data.title = real_title
-                data.date = real_date
-                data.site = Site_Name.objects.get(title = '디지털 대장간')
-
-                if Data_Digital.objects.filter(date=data.date).exists() or time_compare(data.date, datetime.datetime.now().date()):
-                    pass
-                else :
-                    data.save()
-
-                valid = [False, False]
-        i = i + 1
-
-    datas_Digital = Data_Digital.objects.order_by('-date')
-
-    return datas_Digital
-
-def seongsu_crawler():
-
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
-    req = requests.get(
-        'http://makers.sba.kr/category/%EA%B3%A0%EA%B0%9D%EC%84%BC%ED%84%B0/%EA%B3%B5%EC%A7%80%EC%82%AC%ED%95%AD',
-        headers=headers)
-    html = req.text
-    soup = BeautifulSoup(html, 'html.parser')
-
-    data_titles = soup.find_all(class_='tit_post')
-    data_dates = soup.select('#mArticle > div > div')
-
-    p = re.compile('[0-9]+')
-
-    data_box = []
-
-    for i in range(len(data_titles)):
-        data_box.append((data_titles[i], data_dates[i]))
-
-    for i, j in data_box:
-        real_date = p.findall(j.text)
-
-        data = Data_SeongSu()
-        data.title = i.text
-        data.date = datetime.date(int(real_date[0]), int(real_date[1]), int(real_date[2]))
-        data.site = Site_Name.objects.get(title='성수 메이커스페이스')
-
-        if Data_SeongSu.objects.filter(date=data.date, site=data.site).exists() or time_compare(data.date,
-                                                                                datetime.datetime.now().date()):
-            pass
-        else:
-            data.save()
-
-    datas_Seongsu = Data_SeongSu.objects.order_by('-date')
-
-    return datas_Seongsu
-
-
-def hyunime_crawler():
-    req = requests.get('http://hyuni.me/archive/')
-    html = req.text
-    soup = BeautifulSoup(html, 'html.parser')
-
-    data_titles = soup.select('#sya_container > ul > li > div > a')
-    data_dates = soup.find_all(class_='sya_date')
-
-    p = re.compile('[0-9]+')
-
-    data_box = []
-
-    date = datetime.datetime.now()
-
-    for i in range(len(data_titles)):
-        data_box.append((data_titles[i], data_dates[i]))
-
-    for i, j in data_box:
-        real_date = p.findall(j.text)
-
-        data = Data_Hyunime()
-        data.title = i.text
-        data.date = datetime.date(int(date.strftime('%Y')), int(real_date[0]), int(real_date[1]))
-        data.site = Site_Name.objects.get(title='hyuni_me')
-
-        if Data_Hyunime.objects.filter(date=data.date, site=data.site).exists() or time_compare(data.date,
-                                                                                                datetime.datetime.now().date()):
-            pass
-        else:
-            data.save()
-
-    datas_Hyunime = Data_Hyunime.objects.order_by('-date')
-
-    return datas_Hyunime
+        data = {}
+        return JsonResponse(data)
